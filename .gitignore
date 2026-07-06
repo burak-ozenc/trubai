@@ -1,0 +1,24 @@
+# Python virtual environment
+trubai-preprocess/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# IDE
+.idea/
+
+# Secrets
+.env
+
+# Model artifacts — pushed to HuggingFace separately, not to git
+checkpoints/
+epoch_044/
+new_embeddings/
+embeddings.zip
+embeddings_v4
+embeddings_v4_1
+
+# Audio data — only augmented/ is tracked in git, everything else stays local
+*.wav
+!augmented/**/*.wav
