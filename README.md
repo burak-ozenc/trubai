@@ -249,7 +249,7 @@ All changes operate after `graphed_main()` returns and do not cross the CUDA gra
 
 ## References
 
-- [Moshi paper — Kyutai](https://kyutai.org)
+- [Moshi paper — Kyutai](https://arxiv.org/abs/2410.00037)
 - [MERT — Music Understanding Model](https://huggingface.co/m-a-p/MERT-v1-95M)
 - [trublib on PyPI](https://pypi.org/project/trublib)
 - [Kyutai alignment paper — arXiv:2506.21463](https://arxiv.org/abs/2506.21463)
