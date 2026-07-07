@@ -1048,8 +1048,8 @@ trubai_streaming_v14.py   — current production script
 trubai_streaming_v14_diagnostic.py — full token tag logging version
 ```
 
-All superseded versions are in `archive/`. The current production script is
-`diagnostics/streaming_v14.py`.
+All versions are kept in place in `streaming/` rather than archived separately.
+The current production script is `streaming/trubai_streaming_v14.py`.
 
 **One constant that must carry forward to any future streaming script:**
 
@@ -1112,14 +1112,13 @@ recompilation and breaks the streaming loop.
 ### PhraseConditioner
 
 PhraseConditioner is the module that decides what to force. It lives in
-`src/phrase_conditioner.py`.
+`conditioner/phrase_conditioner.py`.
 
 At each phrase boundary (ACTIVE→TRAILING transition), it receives a `PhraseFeatures`
 object containing two measurements from the phrase just completed:
 
 ```python
-@dataclass
-class PhraseFeatures:
+class PhraseFeatures(NamedTuple):
     pitch_accuracy: float   # normalized autocorrelation peak [0, 1]
     tone_quality: float     # derived from HNR (harmonics-to-noise ratio)
 ```
@@ -2885,12 +2884,12 @@ after each LoRA update.
 | Component | Checkpoint / Module | Status |
 |---|---|---|
 | trublib (TAD) | PyPI: `trublib` | ✅ Production |
-| TensorConditioner | `retrain_v13/epoch_200.pt` as `ConditionerV12` | ✅ Production |
-| LoRA | `lora_v4/best` | 🔄 Training in progress |
-| LogitBiasVector | `logit_bias/bias_v3.pt`, alpha=0.5 | ✅ Production |
-| PhraseConditioner | `src/phrase_conditioner.py` | ✅ Production |
-| RAG layer | `src/rag_passages.py`, Option A | ✅ Production |
-| Streaming script | `diagnostics/streaming_v14.py` | ✅ Current |
+| TensorConditioner | Modal Volume: `/checkpoints/retrain_v13/best/tensor_conditioner.pt` as `ConditionerV12` | ✅ Production |
+| LoRA | `lora_v3/best` in production streaming; `lora_v4/best` | 🔄 v4 training in progress |
+| LogitBiasVector | Modal Volume: `/checkpoints/logit_bias/bias_v3.pt`, alpha=0.5 | ✅ Production |
+| PhraseConditioner | `conditioner/phrase_conditioner.py` | ✅ Production |
+| RAG layer | `RAG_PASSAGES` dict, inline in `conditioner/phrase_conditioner.py`, Option A | ✅ Production |
+| Streaming script | `streaming/trubai_streaming_v14.py` | ✅ Current |
 | Spoken output alignment | DPO-LN | ⏳ Phase 6/7 |
 | Session state layer | — | ⏳ After alignment |
 | Curriculum layer | — | ⏳ After session state |
