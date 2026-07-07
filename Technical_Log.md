@@ -114,10 +114,6 @@ The project was developed under a structured multi-agent workflow:
   preprocessing pipelines, diagnostics, extraction jobs — that do not require the
   full project context that Faber holds.
 
-- **Burak:** Project owner. Tonmeister background, 10+ years trumpet, self-taught
-  full-stack developer. Runs sessions, delivers results between agents, provides
-  domain knowledge on trumpet acoustics and pedagogy. The only source of crack
-  recordings.
 
 Process rules that are maintained throughout:
 - Spira never delivers specs directly to Faber. Muse reviews and approves first.
@@ -2232,10 +2228,6 @@ were scheduled. The investigation confirmed that synthesis is not viable:
   switches
 - The only source for crack events is a player deliberately producing them
 
-Burak's returning-player embouchure state during recording — not at peak
-conditioning — is a feature, not a flaw. It makes crack production more
-accessible and is representative of the student population TRUB.AI will teach.
-
 ---
 
 ### Final Dataset Assembly
@@ -2426,7 +2418,7 @@ commissioned until Muse confirms both gates are satisfied.
 
 **Authorship process:**
 1. Spira drafts all 9 passages
-2. Burak reviews for pedagogical accuracy from Tonmeister background
+2. Project owner reviews for pedagogical accuracy from Tonmeister background
 3. Muse approves final content
 4. Faber verifies token counts against loaded tokenizer before implementing
 
