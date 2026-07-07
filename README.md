@@ -19,7 +19,7 @@ The key design decision: a real teacher responds to what they *hear*, not just w
       │     Encodes trumpet audio into a 768-dim embedding
       │     Runs once per phrase at the Active→Trailing boundary (~28ms)
       │
-      ├── TensorConditioner  [ConditionerV12, retrain_v13/epoch_200.pt]
+      ├── TensorConditioner  [Modal Volume: /checkpoints/retrain_v13/best/tensor_conditioner.pt]
       │     Translates MERT embedding into Moshi's conditioning space
       │     Injects via condition_sum — acoustic domain only
       │
@@ -27,22 +27,23 @@ The key design decision: a real teacher responds to what they *hear*, not just w
       │     Full-duplex conversational core
       │     Inner monologue text channel receives all language-space steering
       │
-      ├── PhraseConditioner  [src/phrase_conditioner.py]
+      ├── PhraseConditioner  [conditioner/phrase_conditioner.py]
       │     Measures pitch accuracy + tone quality at phrase boundary
       │     Assigns LOW/MED/HIGH bucket pair (9 possible states)
       │     Forces opening sentence fragment into inner monologue
       │
-      ├── RAG Layer  [src/rag_passages.py]
+      ├── RAG Layer  [RAG_PASSAGES dict, inline in conditioner/phrase_conditioner.py]
       │     9 pre-authored pedagogical passages, one per bucket pair
       │     Forced as 12 tokens after the phrase opener
       │     Completes the sentence scaffold before LoRA takes over
       │
-      ├── LogitBiasVector  [checkpoints/logit_bias/bias_v3.pt]
+      ├── LogitBiasVector  [LogitBiasState, inline in streaming/trubai_streaming_v14.py;
+      │                     checkpoint: Modal Volume /checkpoints/logit_bias/bias_v3.pt]
       │     Static bias applied to inner monologue logits
       │     Active for 24 steps post-phrase-boundary
       │     Suppresses LaTeX/academic register, attracts trumpet vocabulary
       │
-      └── LoRA  [checkpoints/lora_v4/best]
+      └── LoRA  [Modal Volume: /checkpoints/lora_v4/best]
             Trumpet pedagogical vocabulary layer on top of base Moshi
             Trained on 4,815 labeled (audio, inner_monologue) pairs
             Generates continuation after the RAG scaffold drains
@@ -62,35 +63,45 @@ The key design decision: a real teacher responds to what they *hear*, not just w
 ## Project Structure
 
 ```
-trubai/
-├── src/
-│   ├── phrase_conditioner.py   # Phrase analysis, forced token injection
-│   ├── rag_passages.py         # 9 pedagogical passages, one per bucket pair
-│   ├── logit_bias.py           # LogitBiasVector — static logit modifier
-│   └── session.py              # Session utilities
+trubai-synthetic-data/
+├── conditioner/
+│   ├── phrase_conditioner.py         # PhraseConditioner + inline RAG_PASSAGES dict
+│   ├── trubai_retrain_conditioner.py # TensorConditioner training
+│   └── trubai_retrain_conditioner_v3/v4.py
 │
 ├── training/
-│   ├── retrain_conditioner.py  # TensorConditioner training (ConditionerV12)
-│   ├── lora_v4.py              # Current LoRA training script
-│   └── pair_formation.py       # Dataset pair formation from raw audio
+│   ├── trubai_train_v5.py ... v13.py # LoRA/conditioner training runs
+│   ├── trubai_lora_v3.py / v4.py     # LoRA training (v4 current)
+│   └── trubai_lora_retrain_v2.py
 │
 ├── preprocessing/
-│   ├── track_a.py              # Breathiness synthesis pipeline
-│   ├── track_b.py              # Pitch variant augmentation pipeline
-│   └── lora_v4_split.py        # Stratified train/eval split
+│   ├── track_a.py                    # Breathiness synthesis pipeline
+│   ├── track_b.py                    # Pitch variant augmentation pipeline
+│   ├── pair_formation.py             # Dataset pair formation from raw audio
+│   ├── lora_v4_split.py              # Stratified train/eval split
+│   └── upload_lora_v4_data.py        # Pushes training data to Modal volume
 │
-├── diagnostics/
-│   ├── streaming_v14.py        # Main streaming script — run this
-│   ├── streaming_v14_diagnostic.py  # Diagnostic version with full token logging
-│   └── verify_rag_tokens.py    # Tokenizer verification for RAG passages
+├── streaming/
+│   ├── trubai_streaming_v14.py       # Current production streaming app (Modal)
+│   ├── trubai_streaming_v14_diagnostic.py  # Full token-tag logging version
+│   ├── trubai_session.py, trubai_modal_option2a.py, trubai_diagnostic_no_lora.py
+│   └── trubai_streaming_v2.py ... v13.py    # Prior versions, kept for reference
 │
-├── data/
-│   ├── failure_tokens.json     # 44 suppressed tokens, 767 occurrences
-│   └── pitch_pairs_log.json    # Track B source file register classification
+├── calibration/
+│   ├── trubai_calibrate_alpha.py ... v3.py  # Logit bias calibration
+│   ├── trubai_derive_logit_bias.py, trubai_norm_check.py
+│   └── trubai_outlier_diagnostic.py, trubai_inspect_leakers.py, trubai_verify_rag_tokens.py
 │
-├── archive/                    # Superseded scripts — kept for reference
-│   └── ...
+├── reports/                          # Test reports, logs, commercial-safe vocabulary list
 │
+├── augmented/                        # Small wav set tracked in git
+├── data/                             # Synthesized audio + json pair logs (wavs gitignored)
+│
+├── checkpoints/, epoch_044/, new_embeddings/, embeddings.zip, bias_v3.pt
+│                                      # Model artifacts — gitignored, mirrored to HF
+│
+├── push_to_hf.py                     # Pushes model artifacts to HuggingFace
+├── SUMMARY.md, Technical_Log.md      # Plain-language overview + full build history
 ├── .gitignore
 └── README.md
 ```
@@ -99,25 +110,26 @@ trubai/
 
 ## Model Weights
 
-Model weights are not stored in this repository. They are hosted on HuggingFace:
+Model weights are not stored in this git repository — they live in two places:
 
-| Component | File | HuggingFace |
-|---|---|---|
-| TensorConditioner | `retrain_v13/epoch_200.pt` | [huggingface.co/burak-ozenc/trubai/epoch_044/tensor_conditioner.pt](https://huggingface.co/burak-ozenc/trubai/blob/main/epoch_044/tensor_conditioner.pt) |
-| LoRA | `lora_v4/best` | [huggingface.co/burak-ozenc/trubai/epoch_044/lora_adapter](https://huggingface.co/burak-ozenc/trubai/tree/main/epoch_044/lora_adapter) |
-| LogitBiasVector | `logit_bias/bias_v3.pt` | [huggingface.co/burak-ozenc/trubai/logit_bias/bias_v3.pt](https://huggingface.co/burak-ozenc/trubai/blob/main/logit_bias/bias_v3.pt) |
-
-Download and place under `checkpoints/` before running:
+**Production runtime** reads them from a Modal Volume (`trubai-checkpoints`), mounted
+at `/checkpoints` inside the streaming app:
 
 ```
-checkpoints/
-├── retrain_v13/
-│   └── epoch_200.pt
-├── lora_v4/
-│   └── best/
-└── logit_bias/
-    └── bias_v3.pt
+/checkpoints/retrain_v13/best/tensor_conditioner.pt
+/checkpoints/lora_v4/best/
+/checkpoints/logit_bias/bias_v3.pt
 ```
+
+**A snapshot is also mirrored to HuggingFace** (private repo) for sharing/backup —
+local folder names differ slightly from the Modal volume (e.g. `epoch_044/` instead
+of `retrain_v13/`) since it's a point-in-time copy, not the live volume:
+
+| Component | HuggingFace |
+|---|---|
+| TensorConditioner | [huggingface.co/burak-ozenc/trubai/epoch_044/tensor_conditioner.pt](https://huggingface.co/burak-ozenc/trubai/blob/main/epoch_044/tensor_conditioner.pt) |
+| LoRA | [huggingface.co/burak-ozenc/trubai/epoch_044/lora_adapter](https://huggingface.co/burak-ozenc/trubai/tree/main/epoch_044/lora_adapter) |
+| LogitBiasVector | [huggingface.co/burak-ozenc/trubai/logit_bias/bias_v3.pt](https://huggingface.co/burak-ozenc/trubai/blob/main/logit_bias/bias_v3.pt) |
 
 ---
 
@@ -157,26 +169,27 @@ MODAL_TOKEN_ID=your_modal_token_id
 MODAL_TOKEN_SECRET=your_modal_token_secret
 ```
 
-**Download model weights from HuggingFace:**
-
-```bash
-# Place downloaded weights under checkpoints/ as shown above
-```
+**For local development** (not required for running the app — that reads from the
+Modal Volume directly), you can pull the HuggingFace snapshot listed above with
+`huggingface-cli download burak-ozenc/trubai --local-dir ./hf_snapshot`.
 
 ---
 
 ## Running
 
+These are Modal apps (`@app.local_entrypoint()`), so they're invoked with the
+Modal CLI, not plain `python`:
+
 **Main streaming script:**
 
 ```bash
-python diagnostics/streaming_v14.py
+modal run streaming/trubai_streaming_v14.py
 ```
 
 **With full token diagnostic output:**
 
 ```bash
-python diagnostics/streaming_v14_diagnostic.py
+modal run streaming/trubai_streaming_v14_diagnostic.py
 ```
 
 The diagnostic script logs every inner monologue token with its tag — `[F]` forced prefix, `[B]` bridge token, `[R]` RAG passage, `[D]` logit-biased free generation, and untagged post-window free generation.
